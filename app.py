@@ -184,8 +184,8 @@ def main():
     st.sidebar.title("ReadNest")
     st.sidebar.subheader("Where stories find you")
 
-    # Navigation selectbox
-    page = st.sidebar.selectbox("Select a page", ["Home", "Search", "Wishlist", "Cart", "Recommended"])
+    # Sidebar navigation
+    page = st.sidebar.radio("Navigate", ["Home", "Search", "Wishlist", "Cart", "Recommended"])
 
     # Display the selected page
     if page == "Home":
