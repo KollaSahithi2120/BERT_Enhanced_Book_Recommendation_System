@@ -77,7 +77,7 @@ def display_books(books):
 
         for j in range(2):
             if i + j < len(books):
-                row = books.iloc(i + j)
+                row = books.iloc[i + j]
                 with cols[j]:
                     st.image(row['image_url'], width=150)
                     st.write(f"<div class='book-details'><b>{row['book_name']}</b></div>", unsafe_allow_html=True)
@@ -181,6 +181,7 @@ def recommended_page():
 # Main app
 def main():
     st.sidebar.title("ReadNest")
+    st.sidebar.subheader("Where stories find you")
     
     # Using tabs for navigation
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["Home", "Search", "Wishlist", "Cart", "Recommended"])
