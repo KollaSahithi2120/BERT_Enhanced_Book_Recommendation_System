@@ -14,7 +14,7 @@ st.markdown("""
     }
 
     /* Increase font size for the tabs */
-    div[data-baseweb="tab"] > button {
+    .stTabs [data-baseweb="tab"] {
         font-size: 20px;
         font-weight: bold;
     }
@@ -77,7 +77,7 @@ def display_books(books):
 
         for j in range(2):
             if i + j < len(books):
-                row = books.iloc[i + j]
+                row = books.iloc(i + j)
                 with cols[j]:
                     st.image(row['image_url'], width=150)
                     st.write(f"<div class='book-details'><b>{row['book_name']}</b></div>", unsafe_allow_html=True)
@@ -134,7 +134,8 @@ def recommend_books_bert(book_names):
 
 # Home page displaying all books
 def home_page():
-    st.title("Book Recommendation System")
+    st.title("ReadNest")
+    st.subheader("Where stories find you.")
     books = fetch_books()
     display_books(books)
 
@@ -179,7 +180,7 @@ def recommended_page():
 
 # Main app
 def main():
-    st.sidebar.title("Book Recommendation System")
+    st.sidebar.title("ReadNest")
     
     # Using tabs for navigation
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["Home", "Search", "Wishlist", "Cart", "Recommended"])
