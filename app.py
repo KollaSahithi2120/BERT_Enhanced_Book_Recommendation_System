@@ -4,6 +4,41 @@ import pandas as pd
 import pickle
 import torch
 
+# Custom CSS for font and size
+st.markdown("""
+    <style>
+    /* Global font settings */
+    body {
+        font-family: 'Arial', sans-serif;
+        font-size: 18px;
+    }
+
+    /* Increase font size for the tabs */
+    .stTabs [data-baseweb="tab"] {
+        font-size: 20px;
+        font-weight: bold;
+    }
+
+    /* Increase font size for titles */
+    h1 {
+        font-size: 36px !important;
+    }
+
+    h2 {
+        font-size: 28px !important;
+    }
+
+    h3 {
+        font-size: 24px !important;
+    }
+
+    /* Style for book details */
+    .book-details {
+        font-size: 18px;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # Load BERT model and tokenizer (use st.cache_resource to cache the model)
 @st.cache_resource
 def load_bert_model():
@@ -45,11 +80,11 @@ def display_books(books):
                 row = books.iloc[i + j]
                 with cols[j]:
                     st.image(row['image_url'], width=150)
-                    st.write(f"**{row['book_name']}**")
-                    st.write(f"*{row['author_name']}*")
-                    st.write(f"**Genre**: {row['genre']}")
-                    st.write(f"**Published**: {row['yop']}")
-                    st.write(f"**Publisher**: {row['name_of_publisher']}")
+                    st.write(f"<div class='book-details'><b>{row['book_name']}</b></div>", unsafe_allow_html=True)
+                    st.write(f"<div class='book-details'><i>{row['author_name']}</i></div>", unsafe_allow_html=True)
+                    st.write(f"<div class='book-details'><b>Genre:</b> {row['genre']}</div>", unsafe_allow_html=True)
+                    st.write(f"<div class='book-details'><b>Published:</b> {row['yop']}</div>", unsafe_allow_html=True)
+                    st.write(f"<div class='book-details'><b>Publisher:</b> {row['name_of_publisher']}</div>", unsafe_allow_html=True)
 
                     # Heart for Wishlist
                     if st.button(f"❤️ Add to Wishlist", key=f"wishlist_{row['id']}"):
