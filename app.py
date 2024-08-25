@@ -180,21 +180,23 @@ def recommended_page():
 
 # Main app
 def main():
+    # Sidebar with app name and tagline
     st.sidebar.title("ReadNest")
     st.sidebar.subheader("Where stories find you")
-    
-    # Using tabs for navigation
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["Home", "Search", "Wishlist", "Cart", "Recommended"])
 
-    with tab1:
+    # Navigation selectbox
+    page = st.sidebar.selectbox("Select a page", ["Home", "Search", "Wishlist", "Cart", "Recommended"])
+
+    # Display the selected page
+    if page == "Home":
         home_page()
-    with tab2:
+    elif page == "Search":
         search_page()
-    with tab3:
+    elif page == "Wishlist":
         wishlist_page()
-    with tab4:
+    elif page == "Cart":
         cart_page()
-    with tab5:
+    elif page == "Recommended":
         recommended_page()
 
 if __name__ == "__main__":
