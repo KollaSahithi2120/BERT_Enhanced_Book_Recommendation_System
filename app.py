@@ -144,18 +144,20 @@ def recommended_page():
 
 # Main app
 def main():
-    st.sidebar.title("Navigation")
-    page = st.sidebar.selectbox("Go to", ["Home", "Search", "Wishlist", "Cart", "Recommended"], index=0)
+    st.sidebar.title("Book Recommendation System")
+    
+    # Using tabs for navigation
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["Home", "Search", "Wishlist", "Cart", "Recommended"])
 
-    if page == "Home":
+    with tab1:
         home_page()
-    elif page == "Search":
+    with tab2:
         search_page()
-    elif page == "Wishlist":
+    with tab3:
         wishlist_page()
-    elif page == "Cart":
+    with tab4:
         cart_page()
-    elif page == "Recommended":
+    with tab5:
         recommended_page()
 
 if __name__ == "__main__":
