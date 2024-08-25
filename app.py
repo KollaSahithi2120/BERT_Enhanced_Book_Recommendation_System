@@ -4,7 +4,6 @@ import pandas as pd
 import pickle
 import torch
 
-
 # Load BERT model and tokenizer (use st.cache_resource to cache the model)
 @st.cache_resource
 def load_bert_model():
@@ -66,8 +65,6 @@ def display_books(books):
                     if st.button("View Details", key=f"view_{row['id']}"):
                         st.write(row['description'])
             st.write("---")
-
-
 
 # View books in a list (wishlist or cart)
 def view_list(list_type):
@@ -148,7 +145,7 @@ def recommended_page():
 # Main app
 def main():
     st.sidebar.title("Navigation")
-    page = st.sidebar.radio("Go to", ["Home", "Search", "Wishlist", "Cart", "Recommended"])
+    page = st.sidebar.selectbox("Go to", ["Home", "Search", "Wishlist", "Cart", "Recommended"], index=0)
 
     if page == "Home":
         home_page()
