@@ -14,7 +14,7 @@ st.markdown("""
     }
 
     /* Increase font size for the tabs */
-    .stTabs [data-baseweb="tab"] {
+    div[data-baseweb="tab"] > button {
         font-size: 20px;
         font-weight: bold;
     }
