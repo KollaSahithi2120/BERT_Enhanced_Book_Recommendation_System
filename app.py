@@ -2,9 +2,6 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 import pickle
-import ctypes
-ctypes.WinDLL("C:/Users/user1/AppData/Local/Programs/Python/Python312/Lib/site-packages/torch/lib/fbgemm.dll")
-
 import torch
 
 
