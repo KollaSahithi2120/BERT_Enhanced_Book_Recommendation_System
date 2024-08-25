@@ -3,41 +3,7 @@ import sqlite3
 import pandas as pd
 import pickle
 import torch
-
-# Custom CSS for font and size
-st.markdown("""
-    <style>
-    /* Global font settings */
-    body {
-        font-family: 'Arial', sans-serif;
-        font-size: 18px;
-    }
-
-    /* Increase font size for the tabs */
-    .stTabs [data-baseweb="tab"] {
-        font-size: 20px;
-        font-weight: bold;
-    }
-
-    /* Increase font size for titles */
-    h1 {
-        font-size: 36px !important;
-    }
-
-    h2 {
-        font-size: 28px !important;
-    }
-
-    h3 {
-        font-size: 24px !important;
-    }
-
-    /* Style for book details */
-    .book-details {
-        font-size: 18px;
-    }
-    </style>
-""", unsafe_allow_html=True)
+from sklearn.metrics.pairwise import cosine_similarity
 
 # Load BERT model and tokenizer (use st.cache_resource to cache the model)
 @st.cache_resource
@@ -111,7 +77,7 @@ def view_list(list_type):
         st.write("Your list is empty.")
 
 # Recommend books using BERT model
-def recommend_books_bert(book_names):
+def recommend_books_bert(book_ids):
     bert_model = load_bert_model()
     if bert_model is None:
         st.write("BERT model not loaded, unable to generate recommendations.")
@@ -119,17 +85,47 @@ def recommend_books_bert(book_names):
 
     books = fetch_books()
 
-    # Placeholder logic for recommendations using the BERT model
+    # Generate embeddings for wishlist books
+    wishlist_books = books[books['id'].isin(book_ids)]
+    wishlist_embeddings = []
+    
+    with torch.no_grad():
+        for i, row in wishlist_books.iterrows():
+            description = row['description']
+            inputs = bert_model.tokenizer(description, return_tensors='pt', truncation=True, padding=True)
+            outputs = bert_model.model(**inputs)
+            embedding = outputs.logits.squeeze().numpy()
+            wishlist_embeddings.append(embedding)
+    
+    wishlist_embeddings = np.array(wishlist_embeddings)
+    
+    # Generate embeddings for all books in the database
+    dataset_embeddings = []
+    
+    with torch.no_grad():
+        for i, row in books.iterrows():
+            description = row['description']
+            inputs = bert_model.tokenizer(description, return_tensors='pt', truncation=True, padding=True)
+            outputs = bert_model.model(**inputs)
+            embedding = outputs.logits.squeeze().numpy()
+            dataset_embeddings.append(embedding)
+    
+    dataset_embeddings = np.array(dataset_embeddings)
+    
+    # Compute cosine similarities
+    similarity_scores = cosine_similarity(wishlist_embeddings, dataset_embeddings)
+    
+    # Get the most similar books for each wishlist item
     recommendations = set()
-    for book_name in book_names:
-        # Assuming bert_model is a dictionary of book_name to recommended_book_ids
-        if book_name in bert_model:
-            recommendations.update(bert_model[book_name])
-
+    top_k = 5  # Number of top recommendations to fetch for each wishlist item
+    
+    for scores in similarity_scores:
+        top_indices = scores.argsort()[-top_k:][::-1]  # Get top-k indices
+        recommendations.update(books.iloc[top_indices]['id'].values)
+    
     # Remove books that are already in the wishlist
-    if 'wishlist' in st.session_state:
-        recommendations.difference_update(st.session_state['wishlist'])
-
+    recommendations.difference_update(st.session_state['wishlist'])
+    
     return books[books['id'].isin(recommendations)]
 
 # Home page displaying all books
@@ -163,12 +159,7 @@ def search_page():
 def recommended_page():
     st.title("Recommended Books")
     if 'wishlist' in st.session_state and st.session_state['wishlist']:
-        books = fetch_books()
-        wishlist_books = books[books['id'].isin(st.session_state['wishlist'])]
-
-        # Extract book names and generate recommendations
-        book_names = wishlist_books['book_name'].tolist()
-        recommended_books = recommend_books_bert(book_names)
+        recommended_books = recommend_books_bert(st.session_state['wishlist'])
 
         if not recommended_books.empty:
             st.write("Based on your wishlist, we recommend the following books:")
@@ -199,5 +190,5 @@ def main():
     elif page == "Recommended":
         recommended_page()
 
-if __name__ == "__main__":
+if _name_ == "_main_":
     main()
