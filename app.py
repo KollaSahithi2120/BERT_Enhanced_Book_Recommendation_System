@@ -38,28 +38,36 @@ def add_to_list(book_id, list_type):
 
 # Display books with heart and cart buttons
 def display_books(books):
-    for _, row in books.iterrows():
-        st.image(row['image_url'], width=150)
-        st.write(f"**{row['book_name']}**")
-        st.write(f"*{row['author_name']}*")
-        st.write(f"**Genre**: {row['genre']}")
-        st.write(f"**Published**: {row['yop']}")
-        st.write(f"**Publisher**: {row['name_of_publisher']}")
+    for i in range(0, len(books), 2):
+        cols = st.columns(2)
 
-        # Heart for Wishlist
-        if st.button(f"❤️ Add to Wishlist", key=f"wishlist_{row['id']}"):
-            add_to_list(row['id'], 'wishlist')
-            st.success("Added to Wishlist")
+        for j in range(2):
+            if i + j < len(books):
+                row = books.iloc[i + j]
+                with cols[j]:
+                    st.image(row['image_url'], width=150)
+                    st.write(f"**{row['book_name']}**")
+                    st.write(f"*{row['author_name']}*")
+                    st.write(f"**Genre**: {row['genre']}")
+                    st.write(f"**Published**: {row['yop']}")
+                    st.write(f"**Publisher**: {row['name_of_publisher']}")
 
-        # Button for Cart
-        if st.button("🛒 Add to Cart", key=f"cart_{row['id']}"):
-            add_to_list(row['id'], 'cart')
-            st.success("Added to Cart")
+                    # Heart for Wishlist
+                    if st.button(f"❤️ Add to Wishlist", key=f"wishlist_{row['id']}"):
+                        add_to_list(row['id'], 'wishlist')
+                        st.success("Added to Wishlist")
 
-        # View Details Button
-        if st.button("View Details", key=f"view_{row['id']}"):
-            st.write(row['description'])
-        st.write("---")
+                    # Button for Cart
+                    if st.button("🛒 Add to Cart", key=f"cart_{row['id']}"):
+                        add_to_list(row['id'], 'cart')
+                        st.success("Added to Cart")
+
+                    # View Details Button
+                    if st.button("View Details", key=f"view_{row['id']}"):
+                        st.write(row['description'])
+            st.write("---")
+
+
 
 # View books in a list (wishlist or cart)
 def view_list(list_type):
