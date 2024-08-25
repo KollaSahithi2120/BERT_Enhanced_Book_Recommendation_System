@@ -9,7 +9,7 @@ import torch
 @st.cache_resource
 def load_bert_model():
     try:
-        with open("compressed_file.pkl", "rb") as file:  # Adjust path as needed
+        with open("bert_model.pkl", "rb") as file:  # Adjust path as needed
             bert_model = pickle.load(file)
         return bert_model
     except Exception as e:
