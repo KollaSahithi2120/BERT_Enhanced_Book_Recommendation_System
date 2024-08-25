@@ -38,10 +38,10 @@ def add_to_list(book_id, list_type):
 
 # Display books with heart and cart buttons
 def display_books(books):
-    for i in range(0, len(books), 3):
-        cols = st.columns(3)
+    for i in range(0, len(books), 2):
+        cols = st.columns(2)
 
-        for j in range(3):
+        for j in range(2):
             if i + j < len(books):
                 row = books.iloc[i + j]
                 with cols[j]:
