@@ -1,3 +1,4 @@
+pip install pandas pickle torch sqlite3 streamlit
 import streamlit as st
 import sqlite3
 import pandas as pd
