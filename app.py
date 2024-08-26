@@ -76,6 +76,9 @@ def add_to_list(book_id, list_type):
         st.session_state[list_type] = []
     if book_id not in st.session_state[list_type]:
         st.session_state[list_type].append(book_id)
+        if list_type == 'wishlist':
+            st.session_state['new_wishlist_item'] = True  # Flag to trigger recommendation
+            recommend_books()
 
 # Display books with heart and cart buttons
 def display_books(books):
@@ -162,36 +165,8 @@ def recommend_books_bert(book_names):
 
     return pd.DataFrame(recommendations)
 
-# Home page displaying all books
-def home_page():
-    st.title("ReadNest")
-    st.subheader("Where stories find you.")
-    books = fetch_books()
-    display_books(books)
-
-# Wishlist page displaying books added to wishlist
-def wishlist_page():
-    st.title("Wishlist")
-    view_list('wishlist')
-
-# Cart page displaying books added to cart
-def cart_page():
-    st.title("Cart")
-    view_list('cart')
-
-# Search page to search for books
-def search_page():
-    st.title("Search Books")
-    search_query = st.text_input("Enter search term...")
-    if search_query:
-        books = fetch_books(search_query)
-        display_books(books)
-    else:
-        st.write("Please enter a search term.")
-
-# Recommended books page
-def recommended_page():
-    st.title("Recommended Books")
+# Generate and display recommendations
+def recommend_books():
     if 'wishlist' in st.session_state and st.session_state['wishlist']:
         books = fetch_books()
         wishlist_books = books[books['id'].isin(st.session_state['wishlist'])]
@@ -212,6 +187,39 @@ def recommended_page():
             st.write("No recommendations found.")
     else:
         st.write("Add books to your wishlist to get recommendations.")
+
+# Home page displaying all books
+def home_page():
+    st.title("ReadNest")
+    st.subheader("Where stories find you.")
+    books = fetch_books()
+    display_books(books)
+
+# Wishlist page displaying books added to wishlist
+def wishlist_page():
+    st.title("Wishlist")
+    view_list('wishlist')
+    recommend_books()  # Generate recommendations after viewing wishlist
+
+# Cart page displaying books added to cart
+def cart_page():
+    st.title("Cart")
+    view_list('cart')
+
+# Search page to search for books
+def search_page():
+    st.title("Search Books")
+    search_query = st.text_input("Enter search term...")
+    if search_query:
+        books = fetch_books(search_query)
+        display_books(books)
+    else:
+        st.write("Please enter a search term.")
+
+# Recommended books page (if triggered manually)
+def recommended_page():
+    st.title("Recommended Books")
+    recommend_books()
 
 # Main app
 def main():
