@@ -3,6 +3,9 @@ import sqlite3
 import pandas as pd
 import pickle
 import torch
+from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
 
 # Custom CSS for font and size
 st.markdown("""
@@ -39,16 +42,20 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Load BERT model (use st.cache_resource to cache the model)
+# Load BERT model and tokenizer
 @st.cache_resource
-def load_bert_model():
+def load_bert_model_and_tokenizer():
     try:
+        # Load model state
         with open("bert_model.pkl", "rb") as file:
-            bert_model = pickle.load(file)
-        return bert_model
+            model_state_dict = pickle.load(file)
+        model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased')
+        model.load_state_dict(model_state_dict)
+        tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
+        return model, tokenizer
     except Exception as e:
-        st.error(f"Failed to load BERT model: {e}")
-        return None
+        st.error(f"Failed to load BERT model or tokenizer: {e}")
+        return None, None
 
 # Database connection
 def get_db_connection():
@@ -110,36 +117,50 @@ def view_list(list_type):
         st.write("Your list is empty.")
 
 # Recommend books using BERT model
-# Recommend books using BERT model
 def recommend_books_bert(book_names):
-    bert_model = load_bert_model()
-    if bert_model is None:
-        st.write("BERT model not loaded, unable to generate recommendations.")
+    model, tokenizer = load_bert_model_and_tokenizer()
+    if model is None or tokenizer is None:
+        st.write("BERT model or tokenizer not loaded, unable to generate recommendations.")
         return pd.DataFrame()  # Return an empty DataFrame
 
-    # Check if 'tokenizer' and 'model' keys exist in bert_model
-    if 'tokenizer' not in bert_model or 'model' not in bert_model:
-        st.write("BERT model is missing 'tokenizer' or 'model' components.")
-        st.write(f"Available keys: {list(bert_model.keys())}")
-        return pd.DataFrame()  # Return an empty DataFrame
+    # Tokenize and encode the book names
+    wishlist_encodings = [tokenizer(name, truncation=True, padding='max_length', max_length=512, return_tensors='pt') for name in book_names]
+    wishlist_embeddings = []
 
-    recommendations = set()
-    for book_name in book_names:
-        try:
-            input_tensor = bert_model['tokenizer'].encode(book_name, return_tensors="pt")
-            outputs = bert_model['model'](input_tensor)
-            predicted_book_ids = outputs.logits.topk(5).indices.tolist()  # Assuming logits are returned
-            recommendations.update(predicted_book_ids)
-        except Exception as e:
-            st.write(f"Error processing book '{book_name}': {e}")
+    model.eval()
+    with torch.no_grad():
+        for encoding in wishlist_encodings:
+            output = model(**encoding)
+            wishlist_embeddings.append(output.logits.squeeze().numpy())
 
-    # Exclude books already in the wishlist
-    if 'wishlist' in st.session_state:
-        recommendations.difference_update(st.session_state['wishlist'])
+    wishlist_embeddings = np.array(wishlist_embeddings)
 
+    # Fetch dataset embeddings
     books = fetch_books()
-    return books[books['id'].isin(recommendations)]
+    dataset_encodings = [tokenizer(desc, truncation=True, padding='max_length', max_length=512, return_tensors='pt') for desc in books['description']]
+    dataset_embeddings = []
 
+    with torch.no_grad():
+        for encoding in dataset_encodings:
+            output = model(**encoding)
+            dataset_embeddings.append(output.logits.squeeze().numpy())
+
+    dataset_embeddings = np.array(dataset_embeddings)
+    similarity_scores = cosine_similarity(wishlist_embeddings, dataset_embeddings)
+
+    # Get top recommendations
+    top_k = 5
+    recommendations = []
+
+    for i, scores in enumerate(similarity_scores):
+        top_indices = scores.argsort()[-top_k:][::-1]
+        recommended_books = books.iloc[top_indices]
+        recommendations.append({
+            'wishlist_book': book_names[i],
+            'recommended_books': recommended_books['book_name'].values
+        })
+
+    return pd.DataFrame(recommendations)
 
 # Home page displaying all books
 def home_page():
@@ -177,11 +198,16 @@ def recommended_page():
 
         # Extract book names and generate recommendations
         book_names = wishlist_books['book_name'].tolist()
-        recommended_books = recommend_books_bert(book_names)
+        recommendations_df = recommend_books_bert(book_names)
 
-        if not recommended_books.empty:
+        if not recommendations_df.empty:
             st.write("Based on your wishlist, we recommend the following books:")
-            display_books(recommended_books)
+            for _, rec in recommendations_df.iterrows():
+                st.write(f"**Wishlist Book:** {rec['wishlist_book']}")
+                st.write("**Top Recommendations:**")
+                for book in rec['recommended_books']:
+                    st.write(f"- {book}")
+                st.write("\n")
         else:
             st.write("No recommendations found.")
     else:
