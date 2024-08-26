@@ -110,18 +110,28 @@ def view_list(list_type):
         st.write("Your list is empty.")
 
 # Recommend books using BERT model
+# Recommend books using BERT model
 def recommend_books_bert(book_names):
     bert_model = load_bert_model()
     if bert_model is None:
         st.write("BERT model not loaded, unable to generate recommendations.")
         return pd.DataFrame()  # Return an empty DataFrame
 
+    # Check if 'tokenizer' and 'model' keys exist in bert_model
+    if 'tokenizer' not in bert_model or 'model' not in bert_model:
+        st.write("BERT model is missing 'tokenizer' or 'model' components.")
+        st.write(f"Available keys: {list(bert_model.keys())}")
+        return pd.DataFrame()  # Return an empty DataFrame
+
     recommendations = set()
     for book_name in book_names:
-        input_tensor = bert_model['tokenizer'].encode(book_name, return_tensors="pt")
-        outputs = bert_model['model'](input_tensor)
-        predicted_book_ids = outputs.logits.topk(5).indices.tolist()  # Assuming logits are returned
-        recommendations.update(predicted_book_ids)
+        try:
+            input_tensor = bert_model['tokenizer'].encode(book_name, return_tensors="pt")
+            outputs = bert_model['model'](input_tensor)
+            predicted_book_ids = outputs.logits.topk(5).indices.tolist()  # Assuming logits are returned
+            recommendations.update(predicted_book_ids)
+        except Exception as e:
+            st.write(f"Error processing book '{book_name}': {e}")
 
     # Exclude books already in the wishlist
     if 'wishlist' in st.session_state:
@@ -129,6 +139,7 @@ def recommend_books_bert(book_names):
 
     books = fetch_books()
     return books[books['id'].isin(recommendations)]
+
 
 # Home page displaying all books
 def home_page():
