@@ -2,6 +2,7 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 import pickle
+import torch
 
 # Custom CSS for font and size
 st.markdown("""
@@ -42,7 +43,7 @@ st.markdown("""
 @st.cache_resource
 def load_bert_model():
     try:
-        with open("bert_model.pkl", "rb") as file:  # Adjust path as needed
+        with open("bert_model.pkl", "rb") as file:
             bert_model = pickle.load(file)
         return bert_model
     except Exception as e:
@@ -51,7 +52,7 @@ def load_bert_model():
 
 # Database connection
 def get_db_connection():
-    conn = sqlite3.connect('books.db')  # Ensure 'books.db' is in the same directory as this script
+    conn = sqlite3.connect('books.db')
     return conn
 
 # Fetch books from the database
@@ -115,16 +116,14 @@ def recommend_books_bert(book_names):
         st.write("BERT model not loaded, unable to generate recommendations.")
         return pd.DataFrame()  # Return an empty DataFrame
 
-    # Placeholder for actual recommendation logic
-    # Assuming bert_model is a pre-trained BERT model fine-tuned for book recommendations
     recommendations = set()
     for book_name in book_names:
         input_tensor = bert_model['tokenizer'].encode(book_name, return_tensors="pt")
         outputs = bert_model['model'](input_tensor)
-        predicted_book_ids = outputs.topk(5).indices.tolist()  # Assuming the model returns top-k similar books
+        predicted_book_ids = outputs.logits.topk(5).indices.tolist()  # Assuming logits are returned
         recommendations.update(predicted_book_ids)
 
-    # Remove books that are already in the wishlist
+    # Exclude books already in the wishlist
     if 'wishlist' in st.session_state:
         recommendations.difference_update(st.session_state['wishlist'])
 
