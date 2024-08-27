@@ -1,61 +1,35 @@
 import streamlit as st
 import sqlite3
 import pandas as pd
-import pickle
-import torch
-from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 
 # Custom CSS for font and size
 st.markdown("""
     <style>
-    /* Global font settings */
     body {
         font-family: 'Arial', sans-serif;
         font-size: 18px;
     }
-
-    /* Increase font size for the tabs */
     .stTabs [data-baseweb="tab"] {
         font-size: 20px;
         font-weight: bold;
     }
-
-    /* Increase font size for titles */
     h1 {
         font-size: 36px !important;
     }
-
     h2 {
         font-size: 28px !important;
     }
-
     h3 {
         font-size: 24px !important;
     }
-
-    /* Style for book details */
     .book-details {
         font-size: 18px;
     }
     </style>
 """, unsafe_allow_html=True)
-
-# Load BERT model and tokenizer
-@st.cache_resource
-def load_bert_model_and_tokenizer():
-    try:
-        # Load model state
-        with open("bert_model.pkl", "rb") as file:
-            model_state_dict = pickle.load(file)
-        model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased')
-        model.load_state_dict(model_state_dict)
-        tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
-        return model, tokenizer
-    except Exception as e:
-        st.error(f"Failed to load BERT model or tokenizer: {e}")
-        return None, None
 
 # Database connection
 def get_db_connection():
@@ -119,47 +93,25 @@ def view_list(list_type):
     else:
         st.write("Your list is empty.")
 
-# Recommend books using BERT model
-def recommend_books_bert(book_names):
-    model, tokenizer = load_bert_model_and_tokenizer()
-    if model is None or tokenizer is None:
-        st.write("BERT model or tokenizer not loaded, unable to generate recommendations.")
-        return pd.DataFrame()  # Return an empty DataFrame
-
-    # Tokenize and encode the book names
-    wishlist_encodings = [tokenizer(name, truncation=True, padding='max_length', max_length=512, return_tensors='pt') for name in book_names]
-    wishlist_embeddings = []
-
-    model.eval()
-    with torch.no_grad():
-        for encoding in wishlist_encodings:
-            output = model(**encoding)
-            wishlist_embeddings.append(output.logits.squeeze().numpy())
-
-    wishlist_embeddings = np.array(wishlist_embeddings)
-
-    # Fetch dataset embeddings
+# Recommend books using cosine similarity
+def recommend_books_cosine(wishlist_descriptions):
     books = fetch_books()
-    dataset_encodings = [tokenizer(desc, truncation=True, padding='max_length', max_length=512, return_tensors='pt') for desc in books['description']]
-    dataset_embeddings = []
-
-    with torch.no_grad():
-        for encoding in dataset_encodings:
-            output = model(**encoding)
-            dataset_embeddings.append(output.logits.squeeze().numpy())
-
-    dataset_embeddings = np.array(dataset_embeddings)
-    similarity_scores = cosine_similarity(wishlist_embeddings, dataset_embeddings)
-
-    # Get top recommendations
+    
+    # Vectorize the book descriptions
+    vectorizer = TfidfVectorizer(stop_words='english')
+    tfidf_matrix = vectorizer.fit_transform(books['description'])
+    
+    wishlist_tfidf = vectorizer.transform(wishlist_descriptions)
+    cosine_similarities = cosine_similarity(wishlist_tfidf, tfidf_matrix)
+    
     top_k = 5
     recommendations = []
 
-    for i, scores in enumerate(similarity_scores):
+    for i, scores in enumerate(cosine_similarities):
         top_indices = scores.argsort()[-top_k:][::-1]
         recommended_books = books.iloc[top_indices]
         recommendations.append({
-            'wishlist_book': book_names[i],
+            'wishlist_book': wishlist_descriptions[i],
             'recommended_books': recommended_books['book_name'].values
         })
 
@@ -171,9 +123,9 @@ def recommend_books():
         books = fetch_books()
         wishlist_books = books[books['id'].isin(st.session_state['wishlist'])]
 
-        # Extract book names and generate recommendations
-        book_names = wishlist_books['book_name'].tolist()
-        recommendations_df = recommend_books_bert(book_names)
+        # Extract book descriptions and generate recommendations
+        wishlist_descriptions = wishlist_books['description'].tolist()
+        recommendations_df = recommend_books_cosine(wishlist_descriptions)
 
         if not recommendations_df.empty:
             st.write("Based on your wishlist, we recommend the following books:")
